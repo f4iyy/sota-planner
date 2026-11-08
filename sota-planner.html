@@ -1,0 +1,528 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f6b4f">
+<title>SOTA Planner</title>
+<style>
+:root{
+  --bg:#f5f4ef; --card:#ffffff; --ink:#1d2a24; --muted:#6a766f; --line:#e3e1d8;
+  --accent:#2f6b4f; --accent-ink:#fff; --warn:#b4531a; --warn-bg:#fdeee0;
+  --c-veh:#8a9ba8; --c-prep:#c9b98a; --c-hike:#5b9a73; --c-rest:#9fc4ae; --c-act:#d2622f; --c-misc:#b9b6aa;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#141a17; --card:#1d2622; --ink:#e8ede9; --muted:#93a099; --line:#2d3833;
+    --accent:#5fb68a; --accent-ink:#0e1a14; --warn:#f0a06a; --warn-bg:#352214;
+    --c-veh:#6f8190; --c-prep:#9c8f63; --c-hike:#4a8c66; --c-rest:#6f9a80; --c-act:#e0743f; --c-misc:#6b6a62;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  padding:0 16px calc(32px + env(safe-area-inset-bottom))}
+.wrap{max-width:980px;margin:0 auto}
+header{padding:20px 0 12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+header h1{font-size:22px;margin:0;letter-spacing:-.01em}
+header .sub{color:var(--muted);font-size:14px;flex:1;min-width:200px}
+.grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:16px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 12px;font-weight:600}
+.row{display:flex;align-items:center;gap:10px;margin:8px 0}
+.row label{flex:1;font-size:14px}
+.row .hint{color:var(--muted);font-size:12px;min-width:44px;text-align:right}
+input,select,button{font:inherit;color:inherit}
+input[type=number],input[type=time],select{
+  background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 10px;min-height:40px;width:92px}
+input[type=time]{width:120px}
+select{width:auto;max-width:100%}
+input:focus,select:focus,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+input[type=checkbox]{width:18px;height:18px;accent-color:var(--accent)}
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:transparent;padding:9px 6px;border-radius:8px;cursor:pointer;font-size:14px;min-height:40px}
+.seg button[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn{background:var(--card);border:1px solid var(--line);border-radius:9px;padding:8px 12px;cursor:pointer;min-height:40px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+.btn.small{padding:4px 10px;min-height:32px;font-size:13px}
+.summit{border-top:1px dashed var(--line);margin-top:12px;padding-top:8px}
+.summit h3{margin:4px 0;font-size:15px;display:flex;justify-content:space-between;align-items:center}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:40px;height:40px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:20px;cursor:pointer}
+.stepper b{min-width:24px;text-align:center;font-size:18px}
+
+/* Résultat */
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.kpi{background:var(--bg);border-radius:10px;padding:10px 12px}
+.kpi span{display:block;font-size:12px;color:var(--muted)}
+.kpi b{font-size:22px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.kpi.main{background:var(--accent);color:var(--accent-ink)}
+.kpi.main span{color:inherit;opacity:.85}
+.warn{background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:10px 12px;font-size:14px;margin-bottom:12px}
+.bar{display:flex;height:22px;border-radius:7px;overflow:hidden;margin:4px 0 6px;background:var(--bg)}
+.bar i{display:block;min-width:1px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--muted);margin-bottom:14px}
+.legend em{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;font-style:normal}
+table{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+th{font-size:12px;color:var(--muted);text-align:left;font-weight:600;padding:4px 6px}
+td{padding:7px 6px;border-top:1px solid var(--line);vertical-align:top}
+td.t{white-space:nowrap}
+td.d{white-space:nowrap;color:var(--muted);text-align:right}
+tr.group td{background:var(--bg);font-weight:700;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);border-top:0}
+tr.key td{font-weight:700}
+tr.anchor td{box-shadow:inset 3px 0 0 var(--accent)}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px}
+.day{font-size:11px;color:var(--warn);margin-left:3px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s}
+.toast.on{opacity:1}
+@media print{
+  body{background:#fff;color:#000}.left,.actions,header .btn{display:none}
+  .grid{display:block}.card{border:0;padding:0}
+}
+.lang{display:flex;gap:6px}
+.lang button{border:2px solid transparent;background:none;padding:2px;border-radius:7px;cursor:pointer;line-height:0;opacity:.55}
+.lang button[aria-pressed=true]{border-color:var(--accent);opacity:1}
+.lang svg{width:30px;height:20px;border-radius:3px;display:block;box-shadow:0 0 0 1px var(--line)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>⛰️ SOTA Planner</h1>
+    <div class="sub" data-i18n="sub"></div>
+    <div class="lang" role="group" aria-label="Langue / Language">
+      <button data-lang="fr" title="Français" aria-label="Français" aria-pressed="true"><svg viewBox="0 0 3 2"><rect width="1" height="2" fill="#0055a4"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#ef4135"/></svg></button>
+      <button data-lang="en" title="English" aria-label="English" aria-pressed="false"><svg viewBox="0 0 60 30"><rect width="60" height="30" fill="#012169"/><path d="M0,0 60,30M60,0 0,30" stroke="#fff" stroke-width="6"/><path d="M0,0 60,30M60,0 0,30" stroke="#C8102E" stroke-width="2"/><path d="M30,0v30M0,15h60" stroke="#fff" stroke-width="10"/><path d="M30,0v30M0,15h60" stroke="#C8102E" stroke-width="6"/></svg></button>
+    </div>
+    <button class="btn small" id="reset" data-i18n="reset"></button>
+  </header>
+
+  <div class="grid">
+    <!-- ===== Saisie ===== -->
+    <div class="left">
+      <div class="card">
+        <h2 data-i18n="mode"></h2>
+        <div class="seg" role="group" aria-label="Mode de calcul">
+          <button id="mFwd" aria-pressed="true" data-i18n="mFwd"></button>
+          <button id="mRetro" aria-pressed="false" data-i18n="mRetro"></button>
+        </div>
+        <div id="fwdBox">
+          <div class="row"><label for="start" data-i18n="start"></label><input type="time" id="start"></div>
+        </div>
+        <div id="retroBox" hidden>
+          <div class="row"><label for="anchor" data-i18n="goal"></label><select id="anchor"></select></div>
+          <div class="row"><label for="target" data-i18n="target"></label><input type="time" id="target"></div>
+        </div>
+        <div class="row"><label for="sunset" data-i18n="sunset"></label><input type="time" id="sunset"></div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="summits"></h2>
+        <div class="row">
+          <label data-i18n="nSummits"></label>
+          <div class="stepper"><button id="nMinus" aria-label="Moins">−</button><b id="nVal"></b><button id="nPlus" aria-label="Plus">+</button></div>
+        </div>
+        <div class="row"><label for="driveOut" data-i18n="driveOut"></label><input type="number" id="driveOut" min="0" step="5" inputmode="numeric"><span class="hint">min</span></div>
+        <div class="row"><label for="driveBack" data-i18n="driveBack"></label><input type="number" id="driveBack" min="0" step="5" inputmode="numeric"><span class="hint">min</span></div>
+        <div class="row"><label><input type="checkbox" id="sameDrive"> <span data-i18n="sameDrive"></span></label></div>
+        <div id="summits"></div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="prepTitle"></h2>
+        <div id="general"></div>
+      </div>
+    </div>
+
+    <!-- ===== Résultat ===== -->
+    <div class="right">
+      <div class="card" id="result">
+        <h2 data-i18n="route"></h2>
+        <div id="warns"></div>
+        <div class="kpis" id="kpis"></div>
+        <div class="bar" id="bar" role="img" aria-label="Répartition du temps"></div>
+        <div class="legend" id="legend"></div>
+        <table>
+          <thead><tr><th data-i18n="thStep"></th><th data-i18n="thStart"></th><th data-i18n="thEnd"></th><th style="text-align:right" data-i18n="thDur"></th></tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        <div class="actions">
+          <button class="btn primary" id="copy" data-i18n="copy"></button>
+          <button class="btn" id="print" data-i18n="print"></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+/* ---------- Langues ---------- */
+const T = {
+fr:{
+ sub:"Prévoir la durée d'une sortie et calculer l'heure de départ (rétro-planning).",
+ reset:"Réinitialiser", mode:"Mode", mFwd:"Je pars à…", mRetro:"Je veux être là à…",
+ start:"Heure de départ", goal:"Objectif", target:"À quelle heure ?",
+ sunset:'Limite à respecter <span class="hint" style="text-align:left">(coucher du soleil, optionnel)</span>',
+ summits:"Sommets", nSummits:"Nombre de sommets", driveOut:"Trajet véhiculé aller", driveBack:"Trajet véhiculé retour",
+ sameDrive:"Retour identique à l'aller", prepTitle:"Temps de préparation & repos", route:"Feuille de route",
+ thStep:"Étape", thStart:"Début", thEnd:"Fin", thDur:"Durée", copy:"Copier le planning", print:"Imprimer / PDF",
+ g_prepVeh:"Préparation avant un trajet véhiculé aller / après le retour",
+ g_prepRando:"Préparation avant une randonnée (aller ou retour)",
+ g_prepSommet:"Préparation avant un trajet entre sommets",
+ g_prepAct:"Déballage avant / remballage après l'activation",
+ g_repos:"Repos au sommet",
+ summitN:"Sommet {k}", driveFrom:"Trajet véhiculé depuis le sommet {k}", hikeUp:"Randonnée aller", hikeDown:"Randonnée retour",
+ sameHike:"Retour identique à l'aller", actTime:"Temps d'activation",
+ gOut:"Aller", gBack:"Retour",
+ stStart:"Heure de départ", stPrepDrive:"Préparation avant le trajet véhiculé", stDriveOut:"Trajet véhiculé aller",
+ stPrepBetween:"Préparation du trajet véhiculé (sommet {a} → {b})", stDriveBetween:"Trajet véhiculé (sommet {a} → {b})",
+ stPrepHike:"Préparation avant randonnée {k} aller", stHikeUp:"Randonnée {k} aller", stRest:"Repos au sommet {k}",
+ stSetup:"Déballage avant activation", stAct:"Activation du sommet {k}", stPack:"Remballage après activation",
+ stHikeDown:"Randonnée {k} retour", stPrepBack:"Préparation du trajet véhiculé retour", stDriveBack:"Trajet véhiculé retour",
+ stPrepAfter:"Préparation après le trajet véhiculé", stReturn:"Heure de retour",
+ aHome:"Être rentré à la maison", aArr:"Arriver au sommet {k}", aActS:"Commencer l'activation du sommet {k}", aActE:"Finir l'activation du sommet {k}",
+ kveh:"Trajet véhiculé", kprep:"Préparation", khike:"Randonnée", krest:"Repos", kact:"Activation",
+ kHome:"Retour à la maison", kDepart:"Heure de départ à prévoir", kTotal:"Durée totale", kHike:"Marche (aller + retour)", kAct:"Activation{s}",
+ wStart:"Renseigne une heure de départ.", wTarget:"Renseigne l'heure cible.",
+ wSun:"⚠️ La descente se termine à {end}, après ta limite de {limit} ({late} de retard).",
+ cpTitle:"SOTA – {n} sommet{s}", cpLine:"Départ {a} → retour {b} ({d})",
+ toast:"Planning copié", copyPrompt:"Copie le texte :", confirmReset:"Remettre toutes les valeurs par défaut ?", dayUnit:"j", barAria:"Répartition du temps"
+},
+en:{
+ sub:"Plan the length of an outing and work out your departure time (back-planning).",
+ reset:"Reset", mode:"Mode", mFwd:"I leave at…", mRetro:"I want to be there at…",
+ start:"Departure time", goal:"Goal", target:"At what time?",
+ sunset:'Time limit <span class="hint" style="text-align:left">(sunset, optional)</span>',
+ summits:"Summits", nSummits:"Number of summits", driveOut:"Drive there", driveBack:"Drive back",
+ sameDrive:"Return same as outbound", prepTitle:"Prep & rest times", route:"Itinerary",
+ thStep:"Step", thStart:"Start", thEnd:"End", thDur:"Duration", copy:"Copy plan", print:"Print / PDF",
+ g_prepVeh:"Prep before the outbound drive / after the return",
+ g_prepRando:"Prep before a hike (up or down)",
+ g_prepSommet:"Prep before driving between summits",
+ g_prepAct:"Setup before / pack-up after the activation",
+ g_repos:"Rest at the summit",
+ summitN:"Summit {k}", driveFrom:"Drive from summit {k}", hikeUp:"Hike up", hikeDown:"Hike down",
+ sameHike:"Down same as up", actTime:"Activation time",
+ gOut:"Outbound", gBack:"Return",
+ stStart:"Departure", stPrepDrive:"Prep before the drive", stDriveOut:"Drive there",
+ stPrepBetween:"Prep for the drive (summit {a} → {b})", stDriveBetween:"Drive (summit {a} → {b})",
+ stPrepHike:"Prep before hike {k} up", stHikeUp:"Hike {k} up", stRest:"Rest at summit {k}",
+ stSetup:"Setup before activation", stAct:"Activation of summit {k}", stPack:"Pack-up after activation",
+ stHikeDown:"Hike {k} down", stPrepBack:"Prep for the drive back", stDriveBack:"Drive back",
+ stPrepAfter:"Prep after the drive", stReturn:"Arrival home",
+ aHome:"Be back home", aArr:"Reach summit {k}", aActS:"Start activating summit {k}", aActE:"Finish activating summit {k}",
+ kveh:"Driving", kprep:"Prep", khike:"Hiking", krest:"Rest", kact:"Activation",
+ kHome:"Back home", kDepart:"Departure time needed", kTotal:"Total time", kHike:"Hiking (up + down)", kAct:"Activation{s}",
+ wStart:"Enter a departure time.", wTarget:"Enter the target time.",
+ wSun:"⚠️ The descent ends at {end}, after your limit of {limit} ({late} late).",
+ cpTitle:"SOTA – {n} summit{s}", cpLine:"Depart {a} → back {b} ({d})",
+ toast:"Plan copied", copyPrompt:"Copy the text:", confirmReset:"Reset all values to defaults?", dayUnit:"d", barAria:"Time breakdown"
+}};
+const LANG_KEY = "sota-planner-lang";
+let LANG = (()=>{ try{ const l=localStorage.getItem(LANG_KEY); if(l&&T[l]) return l; }catch(e){}
+  return (navigator.language||"fr").toLowerCase().startsWith("fr") ? "fr" : "en"; })();
+const t = (k,p={}) => (T[LANG][k] ?? k).replace(/\{(\w+)\}/g,(_,n)=>p[n] ?? "");
+function applyStatic(){
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-i18n]").forEach(el => { el.innerHTML = t(el.dataset.i18n); });
+  document.querySelectorAll("[data-lang]").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang===LANG));
+  $("bar").setAttribute("aria-label", t("barAria"));
+}
+
+const KEY = "sota-planner-v1";
+const MAX_SUMMITS = 6;
+
+/* Valeurs par défaut = celles de l'Excel d'origine */
+const DEFAULTS = () => ({
+  mode: "fwd",            // fwd = départ connu ; retro = heure cible connue
+  start: "13:00",
+  anchor: "return",       // return | arr:i | actS:i | actE:i
+  target: "18:00",
+  sunset: "",
+  n: 1,
+  g: { prepVeh: 10, prepRando: 5, prepSommet: 5, prepAct: 20, repos: 15 },
+  driveOut: 40, driveBack: 40, sameDrive: true,
+  summits: [
+    { act: 60, up: 30, down: 30, sameHike: true, drive: 0 },
+    { act: 60, up: 30, down: 30, sameHike: true, drive: 15 },
+    { act: 60, up: 40, down: 40, sameHike: true, drive: 15 },
+    { act: 60, up: 30, down: 30, sameHike: true, drive: 15 },
+    { act: 60, up: 30, down: 30, sameHike: true, drive: 15 },
+    { act: 60, up: 30, down: 30, sameHike: true, drive: 15 },
+  ],
+});
+
+const GENERAL_FIELDS = ["prepVeh","prepRando","prepSommet","prepAct","repos"];
+
+let S = load();
+
+function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){
+      const d = DEFAULTS(), s = JSON.parse(raw);
+      return { ...d, ...s, g:{...d.g,...s.g}, summits: d.summits.map((x,i)=>({...x,...(s.summits||[])[i]})) };
+    }
+  }catch(e){}
+  return DEFAULTS();
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+
+/* ---------- Utilitaires temps ---------- */
+const num = v => Math.max(0, Math.round(Number(v)) || 0);
+const toMin = hhmm => { if(!hhmm) return null; const [h,m]=hhmm.split(":").map(Number); return h*60+m; };
+function fmtClock(min){
+  const day = Math.floor(min/1440), m = ((min%1440)+1440)%1440;
+  const h = String(Math.floor(m/60)).padStart(2,"0"), mm = String(m%60).padStart(2,"0");
+  return {txt:`${h}:${mm}`, day};
+}
+function clockHTML(min){
+  const {txt,day} = fmtClock(min);
+  return txt + (day>0 ? `<span class="day">+${day}${t("dayUnit")}</span>` : day<0 ? `<span class="day">${day}${t("dayUnit")}</span>` : "");
+}
+function clockText(min){ const {txt,day}=fmtClock(min); return txt + (day>0?` (+${day}${t("dayUnit")})`:day<0?` (${day}${t("dayUnit")})`:""); }
+function fmtDur(min){
+  if(min===0) return "—";
+  const h = Math.floor(min/60), m = min%60;
+  return h ? `${h}h${String(m).padStart(2,"0")}` : `${m} min`;
+}
+
+/* ---------- Construction des étapes (même logique que l'Excel) ---------- */
+function buildSteps(){
+  const g = S.g, steps = [];
+  const add = (group, label, dur, kind, key) => steps.push({group,label,dur:num(dur),kind,key});
+  const driveBack = S.sameDrive ? S.driveOut : S.driveBack;
+
+  const gOut=t("gOut"), gBack=t("gBack");
+  add(gOut,t("stStart"),0,"key","start");
+  add(gOut,t("stPrepDrive"),g.prepVeh,"prep");
+  add(gOut,t("stDriveOut"),S.driveOut,"veh");
+
+  for(let i=0;i<S.n;i++){
+    const s = S.summits[i], k = i+1, grp = t("summitN",{k});
+    const down = s.sameHike ? s.up : s.down;
+    if(i>0){
+      add(grp,t("stPrepBetween",{a:k-1,b:k}),g.prepSommet,"prep");
+      add(grp,t("stDriveBetween",{a:k-1,b:k}),s.drive,"veh");
+    }
+    add(grp,t("stPrepHike",{k}),g.prepRando,"prep");
+    add(grp,t("stHikeUp",{k}),s.up,"hike");
+    add(grp,t("stRest",{k}),g.repos,"rest",`arr:${i}`);
+    add(grp,t("stSetup"),g.prepAct,"prep");
+    add(grp,t("stAct",{k}),s.act,"act",`actS:${i}`);
+    add(grp,t("stPack"),g.prepAct,"prep",`actE:${i}`);
+    add(grp,t("stHikeDown",{k}),down,"hike");
+  }
+  add(gBack,t("stPrepBack"),g.prepRando,"prep");
+  add(gBack,t("stDriveBack"),driveBack,"veh");
+  add(gBack,t("stPrepAfter"),g.prepVeh,"prep");
+  add(gBack,t("stReturn"),0,"key","return");
+
+  let acc = 0;
+  steps.forEach(st => { st.off = acc; acc += st.dur; st.offEnd = acc; });
+  return {steps, total:acc};
+}
+
+/* Points d'ancrage possibles pour le rétro-planning */
+function anchorOptions(){
+  const o = [["return",t("aHome")]];
+  for(let i=0;i<S.n;i++){
+    const k=i+1;
+    o.push([`arr:${i}`,t("aArr",{k})]);
+    o.push([`actS:${i}`,t("aActS",{k})]);
+    o.push([`actE:${i}`,t("aActE",{k})]);
+  }
+  return o;
+}
+
+/* Calcule le planning : renvoie les étapes avec début / fin absolus (en minutes) */
+function compute(){
+  const {steps,total} = buildSteps();
+  let startMin;
+  let anchorKey = null;
+
+  if(S.mode==="fwd"){
+    startMin = toMin(S.start) ?? 0;
+  }else{
+    const target = toMin(S.target) ?? 0;
+    let a = S.anchor;
+    if(!anchorOptions().some(o=>o[0]===a)) a = "return";
+    anchorKey = a;
+    const st = steps.find(x=>x.key===a);
+    // "Arriver au sommet" = début du repos (donc fin de la rando aller) ; "Finir activation" = fin du remballage
+    const ref = a==="return" ? total
+              : a.startsWith("arr:")  ? st.off
+              : a.startsWith("actS:") ? st.off
+              : st.offEnd;
+    // on veut : startMin + ref = target
+    startMin = target - ref;
+  }
+  steps.forEach(st => { st.s = startMin + st.off; st.e = startMin + st.offEnd; });
+  return {steps,total,startMin,anchorKey};
+}
+
+/* ---------- Rendu ---------- */
+const KIND = {
+  veh:{c:"--c-veh"}, prep:{c:"--c-prep"}, hike:{c:"--c-hike"}, rest:{c:"--c-rest"}, act:{c:"--c-act"}, key:{c:"--c-misc"},
+};
+const $ = id => document.getElementById(id);
+
+function render(){
+  const R = compute();
+  const {steps,total,startMin} = R;
+  const endMin = startMin + total;
+
+  // Alertes
+  const warns = [];
+  if(S.mode==="fwd" && !S.start) warns.push(t("wStart"));
+  if(S.mode==="retro" && !S.target) warns.push(t("wTarget"));
+  const sun = toMin(S.sunset);
+  if(sun!==null){
+    const lastHike = [...steps].reverse().find(x=>x.kind==="hike");
+    const end = lastHike ? lastHike.e : endMin;
+    // heure limite ramenée au même jour que le départ
+    let limit = sun + Math.floor(startMin/1440)*1440;
+    if(limit < startMin) limit += 1440;
+    if(end > limit) warns.push(t("wSun",{end:clockText(end),limit:clockText(limit),late:fmtDur(end-limit)}));
+  }
+  $("warns").innerHTML = warns.map(w=>`<div class="warn">${w}</div>`).join("");
+
+  // KPI
+  const sum = k => steps.filter(x=>x.kind===k).reduce((a,x)=>a+x.dur,0);
+  $("kpis").innerHTML = `
+    <div class="kpi main"><span>${S.mode==="retro"?t("kDepart"):t("kHome")}</span><b>${clockHTML(S.mode==="retro"?startMin:endMin)}</b></div>
+    <div class="kpi"><span>${t("kTotal")}</span><b>${fmtDur(total)}</b></div>
+    <div class="kpi"><span>${t("kHike")}</span><b>${fmtDur(sum("hike"))}</b></div>
+    <div class="kpi"><span>${t("kAct",{s:S.n>1?"s":""})}</span><b>${fmtDur(sum("act"))}</b></div>`;
+
+  // Barre
+  const kinds = ["veh","prep","hike","rest","act"];
+  $("bar").innerHTML = steps.filter(x=>x.dur>0).map(x =>
+    `<i style="flex:${x.dur};background:var(${KIND[x.kind].c})" title="${x.label} · ${fmtDur(x.dur)}"></i>`).join("");
+  $("legend").innerHTML = kinds.map(k=>`<span><em style="background:var(${KIND[k].c})"></em>${t("k"+k)} ${fmtDur(sum(k))}</span>`).join("");
+
+  // Tableau
+  let html = "", lastGroup = "";
+  for(const x of steps){
+    if(x.group!==lastGroup){ html += `<tr class="group"><td colspan="4">${x.group}</td></tr>`; lastGroup = x.group; }
+    const isKey = x.kind==="key";
+    const isAnchor = R.anchorKey && x.key===R.anchorKey;
+    html += `<tr class="${isKey?"key":""} ${isAnchor?"anchor":""}">
+      <td><span class="dot" style="background:var(${KIND[x.kind].c})"></span>${x.label}</td>
+      <td class="t">${clockHTML(x.s)}</td>
+      <td class="t">${isKey?"":clockHTML(x.e)}</td>
+      <td class="d">${isKey?"":fmtDur(x.dur)}</td></tr>`;
+  }
+  $("rows").innerHTML = html;
+  R.steps.forEach(()=>{});
+  window.__R = R;
+}
+
+/* ---------- Formulaires ---------- */
+function minInput(id, val, extra=""){
+  return `<input type="number" id="${id}" min="0" step="5" inputmode="numeric" value="${val}" ${extra}><span class="hint">min</span>`;
+}
+function buildForm(){
+  $("general").innerHTML = GENERAL_FIELDS.map(k =>
+    `<div class="row"><label for="g_${k}">${t("g_"+k)}</label>${minInput("g_"+k,S.g[k])}</div>`).join("");
+
+  $("summits").innerHTML = S.summits.slice(0,S.n).map((s,i)=>{
+    const k=i+1;
+    return `<div class="summit"><h3>${t("summitN",{k})}</h3>
+      ${i>0?`<div class="row"><label for="s${i}_drive">${t("driveFrom",{k:k-1})}</label>${minInput(`s${i}_drive`,s.drive)}</div>`:""}
+      <div class="row"><label for="s${i}_up">${t("hikeUp")}</label>${minInput(`s${i}_up`,s.up)}</div>
+      <div class="row"><label for="s${i}_down">${t("hikeDown")}</label>${minInput(`s${i}_down`,s.sameHike?s.up:s.down,s.sameHike?"disabled":"")}</div>
+      <div class="row"><label><input type="checkbox" id="s${i}_same" ${s.sameHike?"checked":""}> ${t("sameHike")}</label></div>
+      <div class="row"><label for="s${i}_act">${t("actTime")}</label>${minInput(`s${i}_act`,s.act)}</div>
+    </div>`;
+  }).join("");
+
+  // sélecteur d'ancre
+  const opts = anchorOptions();
+  if(!opts.some(o=>o[0]===S.anchor)) S.anchor="return";
+  $("anchor").innerHTML = opts.map(([v,l])=>`<option value="${v}" ${v===S.anchor?"selected":""}>${l}</option>`).join("");
+
+  $("nVal").textContent = S.n;
+  $("nMinus").disabled = S.n<=1; $("nPlus").disabled = S.n>=MAX_SUMMITS;
+  $("driveBack").disabled = S.sameDrive;
+  $("driveBack").value = S.sameDrive ? S.driveOut : S.driveBack;
+  $("sameDrive").checked = S.sameDrive;
+  $("driveOut").value = S.driveOut;
+  $("start").value = S.start; $("target").value = S.target; $("sunset").value = S.sunset;
+  $("mFwd").setAttribute("aria-pressed", S.mode==="fwd");
+  $("mRetro").setAttribute("aria-pressed", S.mode==="retro");
+  $("fwdBox").hidden = S.mode!=="fwd"; $("retroBox").hidden = S.mode!=="retro";
+}
+
+function commit(rebuild){
+  save();
+  if(rebuild) buildForm();
+  render();
+}
+
+/* ---------- Événements ---------- */
+$("mFwd").onclick   = () => { S.mode="fwd";   commit(true); };
+$("mRetro").onclick = () => { S.mode="retro"; commit(true); };
+$("start").oninput  = e => { S.start = e.target.value;  commit(false); };
+$("target").oninput = e => { S.target = e.target.value; commit(false); };
+$("sunset").oninput = e => { S.sunset = e.target.value; commit(false); };
+$("anchor").onchange= e => { S.anchor = e.target.value; commit(false); };
+$("nMinus").onclick = () => { if(S.n>1){ S.n--; commit(true);} };
+$("nPlus").onclick  = () => { if(S.n<MAX_SUMMITS){ S.n++; commit(true);} };
+$("driveOut").oninput = e => { S.driveOut = num(e.target.value); if(S.sameDrive) $("driveBack").value=S.driveOut; commit(false); };
+$("driveBack").oninput= e => { S.driveBack = num(e.target.value); commit(false); };
+$("sameDrive").onchange = e => { S.sameDrive = e.target.checked; commit(true); };
+
+$("general").addEventListener("input", e => {
+  const m = /^g_(\w+)$/.exec(e.target.id); if(!m) return;
+  S.g[m[1]] = num(e.target.value); commit(false);
+});
+$("summits").addEventListener("input", e => {
+  const m = /^s(\d+)_(\w+)$/.exec(e.target.id); if(!m) return;
+  const s = S.summits[+m[1]], f = m[2];
+  if(f==="same"){
+    s.sameHike = e.target.checked; if(!s.sameHike) s.down = s.up;
+    commit(true); return;
+  }
+  s[f] = num(e.target.value);
+  if(f==="up" && s.sameHike){ const d=$(`s${m[1]}_down`); if(d) d.value = s.up; }
+  commit(false);
+});
+$("summits").addEventListener("change", e => {   // les cases à cocher déclenchent "change"
+  const m = /^s(\d+)_same$/.exec(e.target.id); if(!m) return;
+  const s = S.summits[+m[1]];
+  s.sameHike = e.target.checked; if(!s.sameHike) s.down = s.up;
+  commit(true);
+});
+
+$("reset").onclick = () => { if(confirm(t("confirmReset"))){ S = DEFAULTS(); commit(true); } };
+$("print").onclick = () => window.print();
+
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("on"); setTimeout(()=>t.classList.remove("on"),1800); }
+$("copy").onclick = async () => {
+  const R = window.__R;
+  let out = `${t("cpTitle",{n:S.n,s:S.n>1?"s":""})}\n${t("cpLine",{a:clockText(R.startMin),b:clockText(R.startMin+R.total),d:fmtDur(R.total)})}\n`;
+  let g = "";
+  for(const x of R.steps){
+    if(x.group!==g){ out += `\n${x.group}\n`; g = x.group; }
+    out += x.kind==="key" ? `  ${clockText(x.s)}  ${x.label}\n` : `  ${clockText(x.s)}–${clockText(x.e)}  ${x.label} (${fmtDur(x.dur)})\n`;
+  }
+  try{ await navigator.clipboard.writeText(out); toast(t("toast")); }
+  catch(e){ prompt(t("copyPrompt"), out); }
+};
+
+document.querySelectorAll("[data-lang]").forEach(b => b.onclick = () => {
+  LANG = b.dataset.lang;
+  try{ localStorage.setItem(LANG_KEY, LANG); }catch(e){}
+  applyStatic(); buildForm(); render();
+});
+applyStatic(); buildForm(); render();
+</script>
+</body>
+</html>

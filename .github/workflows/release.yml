@@ -1,0 +1,32 @@
+name: Release sota-planner
+
+on:
+  push:
+    paths:
+      - sota-planner.html
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare release asset
+        id: prep
+        run: |
+          SHORT_SHA="${GITHUB_SHA::7}"
+          cp sota-planner.html "sota-planner-${SHORT_SHA}.html"
+          echo "sha=${SHORT_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "sota-planner-${{ steps.prep.outputs.sha }}" \
+            "sota-planner-${{ steps.prep.outputs.sha }}.html" \
+            --target "$GITHUB_SHA" \
+            --title "sota-planner-${{ steps.prep.outputs.sha }}" \
+            --notes "Release automatique du commit ${GITHUB_SHA}"

@@ -2,7 +2,7 @@
 
 A small, single-file web app to estimate the duration of a [SOTA](https://www.sota.org.uk/) (Summits on the Air) outing and to **back-plan** your departure time. Available in English and French.
 
-No installation, no dependencies, no server: just open `index.html` in a browser (desktop or phone).
+No installation, no dependencies, no server: just open `sota-planner.html` in a browser (desktop or phone).
 
 ## Features
 
@@ -21,7 +21,7 @@ No installation, no dependencies, no server: just open `index.html` in a browser
 
 ## Usage
 
-1. Open `index.html` in a browser.
+1. Open `sota-planner.html` in a browser.
 2. Pick a **mode**:
    - *I leave at…* – set the departure time.
    - *I want to be there at…* – choose a goal and the time you want to reach it.
